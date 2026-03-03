@@ -11,6 +11,7 @@ import {
 import * as path from "path"
 import * as os from "os"
 import * as fs from "fs"
+
 import { fileURLToPath } from "url"
 import * as pty from "node-pty"
 
@@ -29,6 +30,7 @@ import {
 import type { ToolCategory } from "../permissions.js"
 
 import { AuthStorage } from "../auth/storage.js"
+import { PlaywrightBrowserManager } from "../browser/playwright-manager.js"
 
 // Extracted modules
 import { ElectronStateManager } from "./electron-state.js"
@@ -99,9 +101,13 @@ async function createHarness(projectPath: string) {
 	const authStorage = new AuthStorage()
 	const electronState = new ElectronStateManager()
 
+	const browserManager = new PlaywrightBrowserManager()
+
 	// Hook manager session tracking + OM progress loading
 	harness.subscribe((event: any) => {
 		if (event.type === "thread_changed") {
+			// Close browser when switching threads — browser state is conversation-specific
+			browserManager.close().catch(() => {})
 			hookManager?.setSessionId(event.threadId)
 			harness.loadOMProgress?.().catch(() => {})
 		} else if (event.type === "thread_created") {
@@ -124,6 +130,7 @@ async function createHarness(projectPath: string) {
 	return {
 		harness,
 		mcpManager,
+		browserManager,
 		resolveModel,
 		authStorage,
 		electronState,
@@ -310,6 +317,7 @@ function cleanupSession(sessionPath: string) {
 	}
 	session.ptySessions.clear()
 	session.mcpManager?.disconnect().catch(() => {})
+	session.browserManager?.close().catch(() => {})
 	sessions.delete(sessionPath)
 	sessionTimings.delete(sessionPath)
 }
@@ -525,6 +533,7 @@ app.whenReady().then(async () => {
 	const initialSession: WorktreeSession = {
 		harness: result.harness,
 		mcpManager: result.mcpManager,
+		browserManager: result.browserManager,
 		resolveModel: result.resolveModel,
 		authStorage: result.authStorage,
 		electronState: result.electronState,

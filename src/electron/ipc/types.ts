@@ -2,10 +2,12 @@ import type { BrowserWindow } from "electron"
 import type * as pty from "node-pty"
 import type { Harness } from "@mastra/core/harness"
 import type { ElectronStateManager } from "../electron-state.js"
+import type { PlaywrightBrowserManager } from "../../browser/playwright-manager.js"
 
 export interface WorktreeSession {
 	harness: Harness<any>
 	mcpManager: any
+	browserManager: PlaywrightBrowserManager
 	resolveModel: (modelId: string) => any
 	authStorage: any
 	electronState: ElectronStateManager
@@ -37,6 +39,7 @@ export interface HandlerContext {
 	createHarness: (path: string) => Promise<{
 		harness: Harness<any>
 		mcpManager: any
+		browserManager: PlaywrightBrowserManager
 		resolveModel: (modelId: string) => any
 		authStorage: any
 		electronState: ElectronStateManager
