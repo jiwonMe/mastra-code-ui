@@ -17,6 +17,10 @@ import * as pty from "node-pty"
 
 import { createMastraCode } from "mastracode"
 
+import {
+	createNavigateBrowserTool,
+	createComputerUseTool,
+} from "../tools/index.js"
 import { getAppDataDir } from "../utils/project.js"
 import {
 	getToolCategory,
@@ -70,8 +74,18 @@ const sessionTimings = new Map<string, AgentTiming>()
 // Create Harness via createMastraCode
 // =============================================================================
 async function createHarness(projectPath: string) {
+	const browserManager = new PlaywrightBrowserManager()
+	const navigateBrowserTool = createNavigateBrowserTool(browserManager)
+	const computerUseTool = createComputerUseTool(browserManager)
+
 	const { harness, mcpManager, hookManager, resolveModel, storageWarning } =
-		await createMastraCode({ cwd: projectPath })
+		await createMastraCode({
+			cwd: projectPath,
+			extraTools: {
+				"navigate-browser": navigateBrowserTool,
+				computer: computerUseTool,
+			},
+		})
 
 	if (storageWarning) {
 		console.warn("[storage]", storageWarning)
@@ -82,8 +96,6 @@ async function createHarness(projectPath: string) {
 	// Both read/write the same auth.json file so credentials stay in sync.
 	const authStorage = new AuthStorage()
 	const electronState = new ElectronStateManager()
-
-	const browserManager = new PlaywrightBrowserManager()
 
 	// Hook manager session tracking + OM progress loading
 	harness.subscribe((event: any) => {

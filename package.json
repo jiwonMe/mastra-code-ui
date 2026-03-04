@@ -92,7 +92,10 @@
 			"electron",
 			"esbuild",
 			"node-pty"
-		]
+		],
+		"patchedDependencies": {
+			"mastracode": "patches/mastracode.patch"
+		}
 	},
 	"devDependencies": {
 		"@ast-grep/napi": "^0.40.5",

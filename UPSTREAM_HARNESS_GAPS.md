@@ -4,7 +4,7 @@ This document catalogues functionality needed by the Electron app that is missin
 under-typed in the published `Harness` from `@mastra/core/harness`. Each item describes
 the current workaround and the ideal upstream API.
 
-**Last updated:** Upgraded to `@mastra/core@1.9.0` + `mastracode@0.5.1` — 15 of 16 gaps resolved.
+**Last updated:** Upgraded to `@mastra/core@1.9.0` + `mastracode@0.5.1` — 15 of 17 gaps resolved.
 
 ---
 
@@ -205,6 +205,40 @@ Custom tools are merged into the dynamic tool set alongside built-in and MCP too
 
 ---
 
+## 20. `opencodeClaudeMaxProvider` OAuth Fetch Overwrites SDK Headers — OPEN (patched locally)
+
+**File:** `mastracode/dist/chunk-JI4M5525.js` (ESM), `chunk-AJEYT7X3.cjs` (CJS)
+
+The OAuth custom `fetch` in `opencodeClaudeMaxProvider` replaces `init.headers` entirely
+with hardcoded headers:
+
+```js
+headers: {
+  Authorization: `Bearer ${accessToken}`,
+  "anthropic-beta": "oauth-2025-04-20,...",
+  "anthropic-version": "2023-06-01"
+}
+```
+
+This drops any `anthropic-beta` values that the AI SDK dynamically adds via `prepareTools()`
+(e.g. `computer-use-2025-11-24` for computer use tools). The result: provider-defined tools
+like `computer_20251124` are sent in the API request body but the required beta header is
+missing, causing the API to reject the tool type.
+
+**Workaround:** pnpm patch that merges the SDK's `anthropic-beta` header with the OAuth betas:
+
+```js
+const sdkBeta = init?.headers?.["anthropic-beta"] || ""
+const oauthBeta = "oauth-2025-04-20,..."
+const mergedBeta = sdkBeta ? `${oauthBeta},${sdkBeta}` : oauthBeta
+```
+
+**Ideal fix:** The OAuth fetch should merge `init.headers["anthropic-beta"]` with its own
+beta list instead of replacing it. This affects any provider-defined tool that requires a
+beta header (computer use, code execution, web fetch, etc.).
+
+---
+
 ## Summary
 
 | Status   | Items                                | Notes                                                                      |
@@ -216,3 +250,4 @@ Custom tools are merged into the dynamic tool set alongside built-in and MCP too
 | OPEN     | 1                                    | `deleteThread` still missing                                               |
 | OPEN     | 9, 10                                | Config extensibility (hookManager, mcpManager)                             |
 | OPEN     | 14                                   | Auth integration (intentionally external)                                  |
+| OPEN     | 20                                   | OAuth fetch drops SDK beta headers (patched locally)                       |
