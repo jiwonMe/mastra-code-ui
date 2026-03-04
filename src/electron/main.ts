@@ -15,10 +15,6 @@ import * as fs from "fs"
 import { fileURLToPath } from "url"
 import * as pty from "node-pty"
 
-import { createAnthropic } from "@ai-sdk/anthropic"
-import { createOpenAI } from "@ai-sdk/openai"
-import { ModelRouterLanguageModel } from "@mastra/core/llm"
-
 import { createMastraCode } from "mastracode"
 
 import { getAppDataDir } from "../utils/project.js"
@@ -71,24 +67,10 @@ const sessionTimings = new Map<string, AgentTiming>()
 // =============================================================================
 
 // =============================================================================
-// Lightweight resolveModel — needed for generateThreadTitle.
-// createMastraCode handles the full model resolution internally but doesn't
-// expose it, so we keep a minimal version for the one call site that needs it.
-// =============================================================================
-function resolveModel(modelId: string) {
-	if (modelId.startsWith("anthropic/")) {
-		return createAnthropic({})(modelId.substring("anthropic/".length))
-	} else if (modelId.startsWith("openai/")) {
-		return createOpenAI({})(modelId.substring("openai/".length))
-	}
-	return new ModelRouterLanguageModel(modelId)
-}
-
-// =============================================================================
 // Create Harness via createMastraCode
 // =============================================================================
 async function createHarness(projectPath: string) {
-	const { harness, mcpManager, hookManager, storageWarning } =
+	const { harness, mcpManager, hookManager, resolveModel, storageWarning } =
 		await createMastraCode({ cwd: projectPath })
 
 	if (storageWarning) {
